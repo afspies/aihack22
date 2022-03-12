@@ -10,7 +10,7 @@ from tqdm import tqdm
 import aihack22 as ah # pip install -e ./
 
 # Options
-DEBUG = False
+DEBUG = True
 config = dict( # Configurations will be taken from config yaml files in future.
     epochs=5,
     classes=10,
@@ -27,7 +27,7 @@ if DEBUG:
 os.environ["WANDB_RUN_GROUP"] = config['architecture']
 
 data_path = os.path.join(Path(ah.__path__[0]).parent/'data') #! Don't git push data please.
-model_make_fn = ah.networks.make_cnn_model # fn should return a tuple of (model, criterion, optimizer)
+model_make_fn = ah.networks.make_cnn_lstm_model # fn should return a tuple of (model, criterion, optimizer)
 
 # Initialize PRNG seeds and select free GPUs on machine
 ah.set_rng_seeds(config['rng_seed'])
@@ -42,7 +42,7 @@ def main():
 
 
 def model_pipeline(hyperparameters, model_fn, track_gradients=False):
-    if not os.makedirs('./data/{wandb_run_name}'):
+    if not os.path.exists(f'./data/{wandb_run_name}'):
         os.makedirs(f'./data/{wandb_run_name}')
 
     # tell wandb to get started
@@ -91,10 +91,10 @@ def fetch_data(config, slice=5, train=True):
 
 def make_loader(dataset, batch_size):
     loader = torch.utils.data.DataLoader(dataset=dataset,
-                                         batch_size=batch_size, 
+                                            batch_size=batch_size, 
                                          shuffle=True,
                                          pin_memory=True, num_workers=2)
-    return loader
+    return loader 
 
 def train(model, loader, criterion, optimizer, config):
     # Tell wandb to watch what the model gets up to: gradients, weights, and more!
