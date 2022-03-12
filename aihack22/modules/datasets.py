@@ -10,7 +10,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import random
 
+from tqdm import tqdm
 import cv2
 
 def visualize_rollout(rollout, interval=50, show_step=False):
@@ -39,7 +41,7 @@ def visualize_rollout(rollout, interval=50, show_step=False):
                                     interval=interval,
                                     blit=True,
                                     repeat_delay=100)
-    plt.show()
+    return fig
 
 
 def plot_frame(frame, i):
@@ -49,7 +51,88 @@ def plot_frame(frame, i):
     plt.savefig(f'figs/{i}')
     plt.close()
 
+def _is_tensor_video_clip(clip):
+    if not torch.is_tensor(clip):
+        raise TypeError("clip should be Tesnor. Got %s" % type(clip))
+
+    if not clip.ndimension() == 4:
+        raise ValueError("clip should be 4D. Got %dD" % clip.dim())
+
+    return True
                 
+class RandomRotationVideo(object):
+    """
+    Rotate a video about the H,W dim by 90 degrees k times
+    """
+
+    def __init__(self):
+        pass
+    def __call__(self, clip):
+        """
+        Args:
+            clip (torch.tensor): Size is (C, T, H, W)
+        Return:
+            clip (torch.tensor): Size is (C, T, H, W)
+        """
+        k = random.sample([0,1,2,3], 1)
+        assert _is_tensor_video_clip(clip), "clip should be a 4D torch.tensor"
+        clip = torch.rot90(clip, k[0], [-2,-1])
+        return clip
+
+    def __repr__(self):
+        return self.__class__.__name__ + "(p={0})".format(self.p)
+
+class RandomVerticalFlipVideo(object):
+    """
+    Flip the video clip along the Vertical direction with a given probability
+    Args:
+        p (float): probability of the clip being flipped. Default value is 0.5
+    """
+
+    def __init__(self, p=0.5):
+        self.p = p
+
+    def __call__(self, clip):
+        """
+        Args:
+            clip (torch.tensor): Size is (C, T, H, W)
+        Return:
+            clip (torch.tensor): Size is (C, T, H, W)
+        """
+  
+        if random.random() < self.p:
+            assert _is_tensor_video_clip(clip), "clip should be a 4D torch.tensor"
+            clip = clip.flip((-2))
+        return clip
+
+    def __repr__(self):
+        return self.__class__.__name__ + "(p={0})".format(self.p)
+
+class RandomHorizontalFlipVideo(object):
+    """
+    Flip the video clip along the horizonal direction with a given probability
+    Args:
+        p (float): probability of the clip being flipped. Default value is 0.5
+    """
+
+    def __init__(self, p=0.5):
+        self.p = p
+
+    def __call__(self, clip):
+        """
+        Args:
+            clip (torch.tensor): Size is (C, T, H, W)
+        Return:
+            clip (torch.tensor): Size is (C, T, H, W)
+        """
+        if random.random() < self.p:
+            assert _is_tensor_video_clip(clip), "clip should be a 4D torch.tensor"
+            clip = clip.flip((-1))
+        return clip
+
+    def __repr__(self):
+        return self.__class__.__name__ + "(p={0})".format(self.p)
+
 
 
 
@@ -84,7 +167,6 @@ class Bubbles(Dataset):
 
         file_path = self.data[idx]
         traj = np.load(file_path)
-        
         if self.transform:
             raise 'transforms are not implmented yet'
             sample = self.transform(traj)
@@ -136,7 +218,7 @@ class Bubbles(Dataset):
             os.makedirs(new_dir)
             
         max_len = 0
-        for directory in os.listdir(root_dir):
+        for directory in tqdm(os.listdir(root_dir)):
             concat_list = []
             for file in sorted(os.listdir(os.path.join(root_dir, directory))):
                 print(file)
@@ -145,11 +227,9 @@ class Bubbles(Dataset):
                 concat_list.append(frame)
                     
             concat_traj = np.stack(concat_list, axis=0)
-            print(np.shape(concat_traj))
             max_len = max(max_len, np.shape(concat_traj)[0])
             #visualize_rollout(np.expand_dims(concat_traj, axis=-1))
             concat_traj = self.pad_traj(concat_traj)
-            print(np.shape(concat_traj))
             np.save(os.path.join(new_dir, directory), concat_traj)
     
     def pad_traj(self, traj):
@@ -158,11 +238,16 @@ class Bubbles(Dataset):
         return temp_traj
 
 if __name__ == '__main__':
-    e = Bubbles('/vol/bitbucket/hgc19/aihack22/data/trajectories', '/vol/bitbucket/hgc19/aihack22/data/trajectories_full_128by128')
-    #collate_trajectories('/vol/bitbucket/hgc19/aihack22/data/trajectories', '/vol/bitbucket/hgc19/aihack22/data/trajectories_full' )
-    # create_train_test('/vol/bitbucket/hgc19/aihack22/data/trajectories_full')
+    # e = Bubbles('/vol/bitbucket/hgc19/aihack22/data/trajectories', '/vol/bitbucket/hgc19/aihack22/data/trajectories_full_128by128_2')
+    # #collate_trajectories('/vol/bitbucket/hgc19/aihack22/data/trajectories', '/vol/bitbucket/hgc19/aihack22/data/trajectories_full' )
+    # # create_train_test('/vol/bitbucket/hgc19/aihack22/data/trajectories_full')
 
 
-    train_loader = DataLoader(e, batch_size=4, shuffle=True)
-    for i_batch, data in enumerate(train_loader):
-        print(i_batch, data.size())
+    # train_loader = DataLoader(e, batch_size=4, shuffle=True)
+    # for i_batch, data in enumerate(train_loader):
+    #     print(i_batch, data.size())
+
+    x = torch.randn((1,2,3,3))
+    t = RandomRotationVideo() 
+    print(x)
+    print(t(x))
