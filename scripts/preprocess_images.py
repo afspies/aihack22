@@ -8,7 +8,7 @@ import cv2
 from tqdm import tqdm
 
 # %%
-CLEANED_DIR = "trajectories_cleaned"
+CLEANED_DIR = "trajectories_cleaned2"
 os.mkdir(CLEANED_DIR)
 # %%
 
