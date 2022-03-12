@@ -1,0 +1,19 @@
+# Numerical Computing
+numpy
+# jax
+# jaxlib[cuda11_cudnn82]
+torch
+scipy
+pandas
+
+# Visualization
+matplotlib
+
+# Deep learning
+# tensorflow # CPU version for dataset
+# tensorflow_datasets
+# optax
+# dm-haiku
+
+# Utility
+# duecredit # For citation
