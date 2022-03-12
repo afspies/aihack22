@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-
+import cv2
 
 def visualize_rollout(rollout, interval=50, show_step=False):
     """Visualization for a single sample rollout of a physical system.
@@ -90,6 +90,7 @@ class Bubbles(Dataset):
             sample = self.transform(traj)
 
         traj = torch.from_numpy(traj)
+        traj = torch.unsqueeze(traj, 1)
         return traj
 
     def create_train_test(self):
@@ -137,8 +138,10 @@ class Bubbles(Dataset):
         max_len = 0
         for directory in os.listdir(root_dir):
             concat_list = []
-            for file in os.listdir(os.path.join(root_dir, directory)): 
+            for file in sorted(os.listdir(os.path.join(root_dir, directory))):
+                print(file)
                 frame = np.load(os.path.join(root_dir, directory, file))
+                frame = cv2.resize(frame, (128, 128), interpolation=cv2.INTER_AREA).astype(np.float32)
                 concat_list.append(frame)
                     
             concat_traj = np.stack(concat_list, axis=0)
@@ -155,7 +158,7 @@ class Bubbles(Dataset):
         return temp_traj
 
 if __name__ == '__main__':
-    e = Bubbles('/vol/bitbucket/hgc19/aihack22/data/trajectories', '/vol/bitbucket/hgc19/aihack22/data/trajectories_full3')
+    e = Bubbles('/vol/bitbucket/hgc19/aihack22/data/trajectories', '/vol/bitbucket/hgc19/aihack22/data/trajectories_full_128by128')
     #collate_trajectories('/vol/bitbucket/hgc19/aihack22/data/trajectories', '/vol/bitbucket/hgc19/aihack22/data/trajectories_full' )
     # create_train_test('/vol/bitbucket/hgc19/aihack22/data/trajectories_full')
 
