@@ -1,11 +1,15 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import os
-import numpy as np
+
 from torch.utils.data import Dataset, Dataloader
 from torchvision import transforms, utils
 
+
+def create_csv(root_dir):
+    '''
+    Creates the train/val/test csvs
+    '''
 
 
 class Bubbles(Dataset):
@@ -33,8 +37,15 @@ class Bubbles(Dataset):
         file_path = os.path.join(self.root_dir,
                                 self.data_files.iloc[idx, 0])
         # load video
-
+        video_instance = np.load(file_path)
+        print(video_instance)
+        print(np.shape(video_instance))
         if self.transform:
             sample = self.transform(sample)
 
         return sample
+
+
+
+if __name__ == '__main__':
+    pass
