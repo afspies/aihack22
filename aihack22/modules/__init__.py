@@ -1,1 +1,1 @@
-from base_module import HaikuAutoInit
+# from base_module import HaikuAutoInit

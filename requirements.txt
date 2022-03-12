@@ -3,6 +3,7 @@ numpy
 # jax
 # jaxlib[cuda11_cudnn82]
 torch
+torchvision
 scipy
 pandas
 
@@ -16,4 +17,6 @@ matplotlib
 # dm-haiku
 
 # Utility
+wandb
+tqdm
 # duecredit # For citation
