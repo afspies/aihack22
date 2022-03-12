@@ -49,39 +49,6 @@ def plot_frame(frame, i):
     plt.savefig(f'figs/{i}')
     plt.close()
 
-def collate_trajectories(root_dir, new_dir):
-    '''
-    structure of files is:
-    trajectories-
-        traj1-
-            frame1-
-            frame2-
-            frame3-
-        traj2-
-            frame1
-            frame2
-    This func creates a new folder of the structure
-    
-    trajectories_collate-
-        traj1.npy
-        traf2.npy
-        traj3.npy
-    '''
-    if not os.path.exists(new_dir):
-        print('creating new directory for collated frames')
-        os.makedirs(new_dir)
-        
-
-    for directory in os.listdir(root_dir):
-        concat_list = []
-        for file in os.listdir(os.path.join(root_dir, directory)): 
-            frame = np.load(os.path.join(root_dir, directory, file))
-            concat_list.append(frame)
-                
-        concat_traj = np.stack(concat_list, axis=0)
-        print(np.shape(concat_traj))
-        #visualize_rollout(np.expand_dims(concat_traj, axis=-1))
-        np.save(os.path.join(new_dir, directory), concat_traj)
                 
 
 
@@ -89,25 +56,27 @@ def collate_trajectories(root_dir, new_dir):
 class Bubbles(Dataset):
     """Bubble dataset."""
 
-    def __init__(self, root_dir, transform=None, split='train'):
+    def __init__(self, frame_dir, root_dir, transform=None, split='train', max_len=948):
         """
         Args:
             csv_file (string): Path to the csv file with file names to load
+            frame_dir (string): Path to directory with frames per npj
             root_dir (string): Directory with all the images.
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
+        self.max_len = max_len
         if not os.path.exists(root_dir):
             print('you first need to collate the npy files. please run collate_trajectories')
+            self.collate_trajectories(frame_dir, root_dir)
         self.split = split
         self.root_dir = root_dir
         self.data = self.create_train_test()
 
-        print(self.data)
         self.transform = transform
 
     def __len__(self):
-        return len(self.data_files)
+        return len(self.data)
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
@@ -115,10 +84,13 @@ class Bubbles(Dataset):
 
         file_path = self.data[idx]
         traj = np.load(file_path)
+        
         if self.transform:
-            sample = self.transform(sample)
+            raise 'transforms are not implmented yet'
+            sample = self.transform(traj)
 
-        return sample
+        traj = torch.from_numpy(traj)
+        return traj
 
     def create_train_test(self):
         '''
@@ -140,25 +112,54 @@ class Bubbles(Dataset):
         else:
             return test
 
+    def collate_trajectories(self, root_dir, new_dir):
+        '''
+        structure of files is:
+        trajectories-
+            traj1-
+                frame1-
+                frame2-
+                frame3-
+            traj2-
+                frame1
+                frame2
+        This func creates a new folder of the structure
+        
+        trajectories_collate-
+            traj1.npy
+            traf2.npy
+            traj3.npy
+        '''
+        if not os.path.exists(new_dir):
+            print('creating new directory for collated frames')
+            os.makedirs(new_dir)
+            
+        max_len = 0
+        for directory in os.listdir(root_dir):
+            concat_list = []
+            for file in os.listdir(os.path.join(root_dir, directory)): 
+                frame = np.load(os.path.join(root_dir, directory, file))
+                concat_list.append(frame)
+                    
+            concat_traj = np.stack(concat_list, axis=0)
+            print(np.shape(concat_traj))
+            max_len = max(max_len, np.shape(concat_traj)[0])
+            #visualize_rollout(np.expand_dims(concat_traj, axis=-1))
+            concat_traj = self.pad_traj(concat_traj)
+            print(np.shape(concat_traj))
+            np.save(os.path.join(new_dir, directory), concat_traj)
+    
+    def pad_traj(self, traj):
+        temp_traj = np.zeros((self.max_len, np.shape(traj)[-1], np.shape(traj)[-1]))
+        temp_traj[:np.shape(traj)[0], :, :] = traj
+        return temp_traj
 
 if __name__ == '__main__':
-    e = Bubbles('/vol/bitbucket/hgc19/aihack22/data/trajectories_full')
+    e = Bubbles('/vol/bitbucket/hgc19/aihack22/data/trajectories', '/vol/bitbucket/hgc19/aihack22/data/trajectories_full3')
     #collate_trajectories('/vol/bitbucket/hgc19/aihack22/data/trajectories', '/vol/bitbucket/hgc19/aihack22/data/trajectories_full' )
     # create_train_test('/vol/bitbucket/hgc19/aihack22/data/trajectories_full')
 
-    data_transforms = {
-    'train': transforms.Compose([
-        transforms.ToPILImage(),
-        #now do transforms
-        transforms.ToTensor(),
-    ]),
-    'val': transforms.Compose([
-        transforms.Scale(256),
-        transforms.Pad(4,0),
-        transforms.ToTensor(),
-    ]),
-    }
 
-    train_loader = Dataloader(e, batch=1, shuffle=True)
+    train_loader = DataLoader(e, batch_size=4, shuffle=True)
     for i_batch, data in enumerate(train_loader):
         print(i_batch, data.size())
