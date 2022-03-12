@@ -1,6 +1,7 @@
 # aihack extras
 data/
-
+figs/
+venvaihack/
 
 # Byte-compiled / optimized / DLL files
 .vscode
