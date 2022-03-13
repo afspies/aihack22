@@ -10,15 +10,15 @@ from tqdm import tqdm
 import aihack22 as ah # pip install -e ./
 
 # Options
-DEBUG = True
+DEBUG = False
 config = dict( # Configurations will be taken from config yaml files in future.
-    epochs=5,
+    epochs=1000,
     classes=10,
     kernels=[16, 32],
-    batch_size=128,
-    learning_rate=0.005,
+    batch_size=32,
+    learning_rate=0.0001,
     rng_seed=42,
-    dataset="MNIST",
+    dataset="SHORT_TRAJ",
     architecture="CNN")
 wandb_project = 'conv_setup'
 wandb_run_name = f"exp1-{datetime.now().strftime('%H_%M')}"
@@ -85,6 +85,8 @@ def fetch_data(config, slice=5, train=True):
         full_dataset, indices=range(0, len(full_dataset), slice))
         
         return sub_dataset
+    elif config['dataset'] == 'SHORT_TRAJ':
+        return ah.SequenceChopDataloader(data_path, config, split='train' if train else 'test').get_dataset()
     else:
         raise ValueError('HARRY')
 
@@ -109,7 +111,7 @@ def train(model, loader, criterion, optimizer, config):
                 loss = train_batch(images, labels, model, optimizer, criterion)
 
                 steps += 1                
-                if ((batch_idx + 1) % 25) == 0: # Report metrics every 25th batch
+                if ((batch_idx + 1) % 3) == 0: # Report metrics every 25th batch
                     tepoch.set_description(f"Epoch {epoch}")
                     tepoch.set_postfix(loss=loss.item()/len(images))
                     wandb.log({"epoch": epoch, "loss": loss}, step=steps)

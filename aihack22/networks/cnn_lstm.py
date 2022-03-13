@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from torchvision.models import resnet18, convnext_small
 
 
 """
@@ -189,22 +188,32 @@ class ConvLSTM(nn.Module):
     def __init__(self, cfgs, num_classes=1000, width_mult=1.):
         super(ConvLSTM, self).__init__()
         self.encoder = effnetv2_s()
-        self.classifier = nn.LSTM(h*w )
+        self.classifier = nn.LSTM(
+                input_size=1792,
+                hidden_size=2048,
+                num_layers=2,
+                batch_first=True
+        )
+
+        self.mlp = nn.Sequential(
+                    nn.Linear(2048,128), nn.ReLU(),
+                    nn.Linear(128,2)
+        )
 
 
     def forward(self, x):
         # Input shape is [B, T, 1, H, W]
-        x = torch.tile(x[:,None,...], (1, 5, 1, 1, 1))
         B, T, _, H, W = x.shape
         x = x.reshape(-1, 1, H, W)
         x = self.encoder(x)
         F = x.shape[-1]
         x = x.reshape(B, T, F)
-        x = self.classifier(x)
-        exit()
-        return x
+        # x = torch.nn.utils.rnn.pack_padded_sequence(x, X_lengths, batch_first=True)
+        out, _ = self.classifier(x)
+        return self.mlp(out[:,-1,:])
 
 def make_cnn_lstm_model(config, device):
+    # self.
     # Make the model
     model = ConvLSTM(config) # config.kernels, config. classes).to(device)
     model.to(device)
