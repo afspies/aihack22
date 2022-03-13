@@ -74,7 +74,7 @@ class RandomRotationVideo(object):
         Return:
             clip (torch.tensor): Size is (C, T, H, W)
         """
-        k = random.sample([0,1,2,3], 1)
+        k =  random.sample([0,1,2,3], 1)
         assert _is_tensor_video_clip(clip), "clip should be a 4D torch.tensor"
         clip = torch.rot90(clip, k[0], [-2,-1])
         return clip
@@ -102,7 +102,7 @@ class RandomVerticalFlipVideo(object):
   
         if random.random() < self.p:
             assert _is_tensor_video_clip(clip), "clip should be a 4D torch.tensor"
-            clip = clip.flip((-2))
+            clip = torch.flip(clip, [-2])
         return clip
 
     def __repr__(self):
@@ -127,7 +127,7 @@ class RandomHorizontalFlipVideo(object):
         """
         if random.random() < self.p:
             assert _is_tensor_video_clip(clip), "clip should be a 4D torch.tensor"
-            clip = clip.flip((-1))
+            clip = torch.flip(clip, [-1])
         return clip
 
     def __repr__(self):
@@ -167,12 +167,13 @@ class Bubbles(Dataset):
 
         file_path = self.data[idx]
         traj = np.load(file_path)
-        if self.transform:
-            raise 'transforms are not implmented yet'
-            sample = self.transform(traj)
+
 
         traj = torch.from_numpy(traj)
         traj = torch.unsqueeze(traj, 1)
+        if self.transform != None:
+            traj = self.transform(traj)
+
         return traj
 
     def create_train_test(self):
