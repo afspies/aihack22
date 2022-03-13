@@ -12,13 +12,13 @@ import aihack22 as ah # pip install -e ./
 # Options
 DEBUG = False
 config = dict( # Configurations will be taken from config yaml files in future.
-    epochs=5,
+    epochs=1000,
     classes=10,
     kernels=[16, 32],
-    batch_size=128,
-    learning_rate=0.005,
+    batch_size=32,
+    learning_rate=0.0001,
     rng_seed=42,
-    dataset="MNIST",
+    dataset="SHORT_TRAJ",
     architecture="CNN")
 wandb_project = 'conv_setup'
 wandb_run_name = f"exp1-{datetime.now().strftime('%H_%M')}"
@@ -27,7 +27,7 @@ if DEBUG:
 os.environ["WANDB_RUN_GROUP"] = config['architecture']
 
 data_path = os.path.join(Path(ah.__path__[0]).parent/'data') #! Don't git push data please.
-model_make_fn = ah.networks.make_cnn_model # fn should return a tuple of (model, criterion, optimizer)
+model_make_fn = ah.networks.make_cnn_lstm_model # fn should return a tuple of (model, criterion, optimizer)
 
 # Initialize PRNG seeds and select free GPUs on machine
 ah.set_rng_seeds(config['rng_seed'])
@@ -42,7 +42,7 @@ def main():
 
 
 def model_pipeline(hyperparameters, model_fn, track_gradients=False):
-    if not os.makedirs('./data/{wandb_run_name}'):
+    if not os.path.exists(f'./data/{wandb_run_name}'):
         os.makedirs(f'./data/{wandb_run_name}')
 
     # tell wandb to get started
@@ -85,16 +85,18 @@ def fetch_data(config, slice=5, train=True):
         full_dataset, indices=range(0, len(full_dataset), slice))
         
         return sub_dataset
+    elif config['dataset'] == 'SHORT_TRAJ':
+        return ah.SequenceChopDataloader(data_path, config, split='train' if train else 'test').get_dataset()
     else:
         raise ValueError('HARRY')
 
 
 def make_loader(dataset, batch_size):
     loader = torch.utils.data.DataLoader(dataset=dataset,
-                                         batch_size=batch_size, 
+                                            batch_size=batch_size, 
                                          shuffle=True,
                                          pin_memory=True, num_workers=2)
-    return loader
+    return loader 
 
 def train(model, loader, criterion, optimizer, config):
     # Tell wandb to watch what the model gets up to: gradients, weights, and more!
@@ -109,7 +111,7 @@ def train(model, loader, criterion, optimizer, config):
                 loss = train_batch(images, labels, model, optimizer, criterion)
 
                 steps += 1                
-                if ((batch_idx + 1) % 25) == 0: # Report metrics every 25th batch
+                if ((batch_idx + 1) % 3) == 0: # Report metrics every 25th batch
                     tepoch.set_description(f"Epoch {epoch}")
                     tepoch.set_postfix(loss=loss.item()/len(images))
                     wandb.log({"epoch": epoch, "loss": loss}, step=steps)
