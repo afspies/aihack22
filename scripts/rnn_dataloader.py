@@ -8,7 +8,7 @@ from tqdm import tqdm
 class MyDataset(Dataset):
     def __init__(self, train_test) -> None:
         super().__init__()
-        self.timeframes_to_get = 10
+        self.timeframes_to_get = 100
         IMG_SIZE = 64
         self.VECTOR_SIZE = IMG_SIZE ** 2
         coords = []
