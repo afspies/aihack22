@@ -7,6 +7,8 @@ venvaihack/
 
 # Byte-compiled / optimized / DLL files
 .vscode
+data
+**/aihack22.egg-info
 __pycache__/
 *.py[cod]
 *$py.class

@@ -3,21 +3,10 @@ import os
 import numpy as np
 import random
 import pickle
-
-# import tensorflow as tf
-
 import subprocess
 import os
-
-from .due import *
-# Use duecredit (duecredit.org) to provide a citation to relevant work to
-# be cited. This does nothing, unless the user has duecredit installed,
-# And calls this with duecredit (as in `python -m duecredit script.py`):
-due.cite(Doi("10.1167/13.9.30"),
-         description="Template project for small scientific Python projects",
-         tags=["reference-implementation"],
-         path='aihack22')
-
+import wandb
+import torch
 
 # -- Misc. -- # 
 def set_rng_seeds(seed=42):
@@ -53,13 +42,14 @@ def assign_free_gpus(threshold_vram_usage=1500, max_gpus=2):
     gpus_to_use = ','.join([str(i) for i, x in enumerate(gpu_info) if x < threshold_vram_usage])
     os.environ['CUDA_VISIBLE_DEVICES'] = gpus_to_use
     print(f'Using GPUs {gpus_to_use}' if gpus_to_use else 'No free GPUs found')
+    return gpus_to_use
 
+def save_model(model, path):
+  if not os.path.exists(f'./data/{path}'):
+    os.makedirs(f'./data/{path}')
 
-def transform_to_jax(*args):
-    out = []
-    for arg in args:
-        if isinstance(arg, dict): 
-            out.append({k: jnp.array(v, dtype=jnp.float32) for k, v in arg.items()})
-        else:
-            out.append(jnp.array(arg, dtype=jnp.float32))
-    return out
+  model_path = f'./data/{path}/model.pth'
+  torch.save(model.state_dict(), model_path)
+  artifact = wandb.Artifact(path, type='model')
+  artifact.add_file(model_path)
+  return artifact
